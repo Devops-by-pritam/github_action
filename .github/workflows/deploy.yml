@@ -40,4 +40,4 @@ jobs:
         oc apply -f k8s/route.yaml
         
     - name: Restart Deployment to Pull New Image
-      run: oc rollout restart deployment simple-openshift-node-app
+      run: oc rollout restart deployment simple-node-app
