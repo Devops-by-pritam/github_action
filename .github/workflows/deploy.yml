@@ -1,0 +1,40 @@
+name: CI/CD to OpenShift
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v3
+
+    - name: Log in to DockerHub
+      run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+    - name: Build Docker Image
+      run: docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/simple-openshift-node-app ./src
+
+    - name: Push Docker Image
+      run: docker push ${{ secrets.DOCKERHUB_USERNAME }}/simple-openshift-node-app
+
+    - name: Install OpenShift CLI
+      run: |
+        curl -LO https://mirror.openshift.com/pub/openshift-v4/clients/ocp/stable/openshift-client-linux.tar.gz
+        tar -xzf openshift-client-linux.tar.gz
+        sudo mv oc kubectl /usr/local/bin/
+
+    - name: Login to OpenShift
+      run: oc login ${{ secrets.OPENSHIFT_SERVER }} --token=${{ secrets.OPENSHIFT_TOKEN }} --insecure-skip-tls-verify
+
+    - name: Set Project
+      run: oc project ${{ secrets.OPENSHIFT_NAMESPACE }}
+
+    - name: Apply Kubernetes Manifests
+      run: |
+        oc apply -f k8s/deployment.yaml
+        oc apply -f k8s/service.yaml
+        oc apply -f k8s/route.yaml
